@@ -1,0 +1,69 @@
+#!/bin/bash
+
+
+#LIDS: file containing all Yellowstone switch lids
+#lids: LIDS file read into array
+LIDS=/glade/p/work/fabmiz/switch_lids_ordered.csv
+all_lids=(`cat ${LIDS}`)
+
+host=`/bin/hostname`
+host_idx=${host:7}
+results=/glade/p/work/fabmiz/rand_port_cron
+
+low_bound=0
+upper_bound=0
+
+case "$host_idx" in
+
+	1)lower_bound=1  
+	  upper_bound=115
+		;;
+	2)lower_bound=116  
+	  upper_bound=230
+		;;
+	3)lower_bound=231 
+	  upper_bound=345
+		;;
+	4)lower_bound=346  
+	  upper_bound=460
+		;;
+	5)lower_bound=461
+	  upper_bound=575
+		;;
+	6)lower_bound=576 
+	  upper_bound=697
+		;;
+	*)echo "Invalid host index: $host_idx" >> $results/error.txt
+	  exit 1
+		;;
+
+esac
+
+my_lids=("${all_lids[@]:$lower_bound:$upper_bound}")
+
+starttime=`date +%s`
+while true; do
+	#Pick a random switch port on a random 
+	#port on a random switch LID. Then query the
+	#port for 100 times in a row.
+	sw_idx=`shuf -i0-115 -n1`
+	rand_sw_lid="${my_lids[${sw_idx}]}"
+	rand_sw_port=`shuf -i1-36 -n1`
+
+	#Check if random port is up
+	portStatus=`smpquery portinfo $rand_sw_lid $rand_sw_port | grep -E '^LinkState' | grep -Eo 'Down'` 
+	if [[ "$portStatus" == "Down" ]];then echo "Port $rand_sw_port of $rand_sw_lid is DOWN" >> $results/error.txt; continue;fi
+
+	#reset switch port before monitoring
+	perfquery -R $rand_sw_lid $rand_sw_port
+	for i in `seq 1 100`;do
+		
+		s1=`date +%s%N`
+		xmitwait=`/usr/sbin/perfquery $rand_sw_lid $rand_sw_port | tail -1 | grep -Eo '[0-9]+'`
+		s2=`date +%s%N`
+		echo $starttime,$s1,$((s2 - s1)),$rand_sw_lid,$rand_sw_port,$xmitwait >> $results/congestion_data_${host_idx}.csv 
+		sleep 0.1
+		if [[ $xmitwait -eq 4294967295 ]];then break; fi
+	done
+	if [[ $((`date +%s`- starttime)) -ge 1200 ]]; then break; fi 
+done

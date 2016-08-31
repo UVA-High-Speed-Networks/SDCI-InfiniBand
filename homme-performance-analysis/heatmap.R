@@ -1,0 +1,25 @@
+library(gplots)
+library(reshape2)
+
+args <- commandArgs(TRUE)
+all <- read.csv(args[1])
+N <- as.integer(args[2])
+
+m <- acast(all, from ~ to, value.var = "mean")
+m2 <- acast(all, from_host ~ to_host, value.var = "mean", fun.aggregate = mean)
+m3 <- acast(all, from_host ~ to_host, value.var = "mean", fun.aggregate = median)
+m4 <- acast(all, from_cpu ~ to_cpu, value.var = "mean", fun.aggregate = mean)
+m5 <- acast(all, from_cpu ~ to_cpu, value.var = "mean", fun.aggregate = median)
+
+pdf(args[3])
+
+heatmap.2(m, Rowv = NA, Colv = NA, trace = "none", dendrogram = "none", density.info = "none", main = "Heatmap by Task ID", xlab = "Dest", ylab = "Src", col = rev(heat.colors(30)))
+text(x = 0.55, y = 0.9, cex = 0.8, labels = args[4])
+heatmap.2(m2, Rowv = NA, Colv = NA, trace = "none", dendrogram = "none", density.info = "none", main = "Heatmap by Node (Mean)", xlab = "Dest", ylab = "Src", col = rev(heat.colors(30)))
+text(x = 0.55, y = 0.9, cex = 0.8, labels = args[4])
+heatmap.2(m3, Rowv = NA, Colv = NA, trace = "none", dendrogram = "none", density.info = "none", main = "Heatmap by Node (Median)", xlab = "Dest", ylab = "Src", col = rev(heat.colors(30)))
+text(x = 0.55, y = 0.9, cex = 0.8, labels = args[4])
+heatmap.2(m4, Rowv = NA, Colv = NA, trace = "none", dendrogram = "none", density.info = "none", main = "Heatmap by Processor (Mean)", xlab = "Dest", ylab = "Src", col = rev(heat.colors(30)))
+text(x = 0.55, y = 0.9, cex = 0.8, labels = args[4])
+heatmap.2(m5, Rowv = NA, Colv = NA, trace = "none", dendrogram = "none", density.info = "none", main = "Heatmap by Processor (Median)", xlab = "Dest", ylab = "Src", col = rev(heat.colors(30)))
+text(x = 0.55, y = 0.9, cex = 0.8, labels = args[4])
